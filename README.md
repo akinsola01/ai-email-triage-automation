@@ -1,6 +1,6 @@
 ## Demo
 
-![Demo](assets/demo.gif)
+![Demo](assets/ai-email-triage-demo.gif)
 
 # AI Email Triage Automation
 
