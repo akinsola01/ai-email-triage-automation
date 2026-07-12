@@ -1,6 +1,6 @@
-![Demo](assets/ai_email_triage_demo.gif)
-
 # AI Email Triage Automation
+
+![Demo](assets/ai_email_triage_demo.gif)
 
 An AI-powered workflow built with n8n that automatically reads customer inquiries, extracts actionable information using GPT, and sends structured summaries to Slack while acknowledging the customer by email.
 
