@@ -1,0 +1,452 @@
+{
+  "name": "AI Inquiry Triage 05/07/2026",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "d6d25b8f-445e-4610-a3e6-6a07089a6736",
+      "name": "Receive Gmail Inquiry",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "j28952fR27j0eiXv",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formlinkname": "InquiryForm"
+      },
+      "type": "@zohoforms/n8n-nodes-zohoforms.zohoFormsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        192
+      ],
+      "id": "37615c7a-b585-45a2-9097-9a5058ad2cbb",
+      "name": "Receive Zoho Form Inquiry",
+      "webhookId": "040f49f9-78b2-4064-8f81-37df193679c5",
+      "credentials": {
+        "zohoFormsOAuth2Api": {
+          "id": "gipcSl8j8393NyAa",
+          "name": "Zoho Forms account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        320
+      ],
+      "id": "f64ac030-1581-4d52-a0fb-df43f1826438",
+      "name": "Primary AI Model (OpenAI)",
+      "credentials": {
+        "openAiApi": {
+          "id": "2qBTSmokdKd3urF9",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        320
+      ],
+      "id": "b71f185e-6c12-41de-b7a2-b3e15b859f35",
+      "name": "Fallback AI Model (Gemini)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1GTbf9TETuxSKBv5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"Status\": \"Process\",\n  \"Source\": \"text\",\n  \"Email\": \"akinsakingbola@gmail.com\",\n  \"Action\": \"Schedule AC repair\",\n  \"Deadline\": \"Before Saturday\",\n  \"Preferred Appointment\": \"Thursday or Friday\",\n  \"Questions\": \"Do we service older central units?\",\n  \"Important Notes\": \"It might need gas refilling\"\t\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        320
+      ],
+      "id": "7ca728cc-d27f-49b9-85c9-dd10da027348",
+      "name": "Extract Structured Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI assistant for a home services company.\n\nYour job is to determine whether the message is a genuine customer inquiry related to home services.\n\nIf the message is NOT a customer inquiry (for example: spam, marketing emails, newsletters, promotions, personal emails, automated notifications, or unrelated conversations), return ONLY:\n\nStatus: Ignore\n\nDo not extract any other information.\n\nIf the message IS a customer inquiry, return ONLY the following format:\n\nStatus: Process\n\nSource:\nEmail:\nAction:\nDeadline:\nPreferred Appointment:\nQuestions:\nImportant Notes:\n\nIf any field is missing, write \"None\".\n\nThe questions field should contain questions from the incoming message.\n\nThe source field should exactly match the value provided in the input. Do not infer or change it.\n\nCustomer message: {{ $json.Message }}\n\nEmail: {{ $json.Email }}\n\nSource: {{ $json.Source }}\n\n\n\n",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        480,
+        96
+      ],
+      "id": "c443f069-fd37-45b3-9f10-87b63c291a5e",
+      "name": "AI Inquiry Analyzer"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BFD2N5G1Y",
+          "mode": "list",
+          "cachedResultName": "all-inbox-triage-agent"
+        },
+        "text": "=══════════════════════════════════════\n🚨 NEW HOME SERVICE INQUIRY\n══════════════════════════════════════\n\n📥Source: {{ $('AI Inquiry Analyzer').item.json.output.Source }}\n\n📧 Email: {{ $('AI Inquiry Analyzer').item.json.output.Email }}\n\n🔧 Action: {{ $('AI Inquiry Analyzer').item.json.output.Action }}\n\n📅 Deadline: {{ $('AI Inquiry Analyzer').item.json.output.Deadline }}\n\n🗓 Preferred Appoiintment: {{ $('AI Inquiry Analyzer').item.json.output['Preferred Appointment'] }}\n\n❓ Customer Question: {{ $('AI Inquiry Analyzer').item.json.output.Questions }}\n\n⚠ Important Notes: {{ $('AI Inquiry Analyzer').item.json.output['Important Notes'] }}\n\n══════════════════════════════════════\n✅ END OF INQUIRY\n══════════════════════════════════════",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        96
+      ],
+      "id": "afe61b76-7dcc-4045-9954-e2ee07800e4f",
+      "name": "Send Slack Alert",
+      "webhookId": "b362b835-408f-472e-abda-3b9fab7d6de0",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "ELpYCGraM5KqzYKW",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI Inquiry Triage\n\n**Receives inquiries from Gmail and Zoho Forms,\nextracts actionable information using AI,\nfilters invalid requests, and\nnotifies the operations team via Slack.**",
+        "height": 256,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -432,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "6169947e-2fdd-4ddc-be00-9734f1d25ecb",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "145ef0a9-8dd9-4228-a08c-53c81330e899",
+              "leftValue": "={{ $json.output.Status }}",
+              "rightValue": "=Process",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        96
+      ],
+      "id": "0047325c-8d4d-4911-afde-81f28866c484",
+      "name": "Customer Inquiry?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7678eb64-5e87-41f8-ac06-1821e241525f",
+              "name": "Email",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "b5880fc8-6f65-4264-85b8-6d196467c154",
+              "name": "Source",
+              "value": "Gmail",
+              "type": "string"
+            },
+            {
+              "id": "2e956b79-fd6a-499a-8d22-0dbff37fa6dc",
+              "name": "Message",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        0
+      ],
+      "id": "d253a246-61f3-4867-b170-6c8cdd0d3841",
+      "name": "Normalize Gmail Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e20665fc-334e-45c7-862d-350ea67c2ad5",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "34a1f928-64d2-4bc6-a294-cd94c57b1d42",
+              "name": "Source",
+              "value": "Zoho Form",
+              "type": "string"
+            },
+            {
+              "id": "bfd3d26e-1864-4ebd-ab1e-fb89e66ade62",
+              "name": "Message",
+              "value": "={{ $json.MultiLine }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        192
+      ],
+      "id": "545b8324-0ecf-4e7f-8b7f-8fe5a5c0cab1",
+      "name": "Normalize Form Data"
+    }
+  ],
+  "pinData": {
+    "Receive Zoho Form Inquiry": [
+      {
+        "json": {
+          "ADDED_TIME": "07-Jul-2026 12:14:33",
+          "MultiLine": "Hi, I need a quote for gutter cleaning and pressure washing. If I book both services together, do you offer a discount? I'd prefer an appointment sometime next week.",
+          "Email": "emily.brooks17@example.com",
+          "ADDED_TIME_ISO8601": "2026-07-07T12:14:33.000+01:00",
+          "IP_ADDRESS": "",
+          "REFERRER_NAME": "",
+          "SingleLine": "Emily Brooks"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Receive Gmail Inquiry": [
+      {
+        "json": {
+          "id": "19f3c7e7846e974d",
+          "threadId": "19f3c7e7846e974d",
+          "snippet": "June Loom review View your insights hub You eliminated 2 meetings You used Loom to sync smarter. Instead of adding more meetings to the calendar, you cleared schedules while staying connected with Loom",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 56408,
+          "historyId": "12604384",
+          "internalDate": "1783426348000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "CATEGORY_UPDATES",
+              "name": "CATEGORY_UPDATES"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "From": "Loom <info@e.atlassian.com>",
+          "To": "<akinsakingbola@gmail.com>",
+          "Subject": "Your June Loom review 💜"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Receive Gmail Inquiry": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gmail Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Zoho Form Inquiry": {
+      "main": [
+        [
+          {
+            "node": "Normalize Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Primary AI Model (OpenAI)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Inquiry Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback AI Model (Gemini)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Inquiry Analyzer",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Structured Data": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Inquiry Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Inquiry Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Customer Inquiry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Alert": {
+      "main": [
+        []
+      ]
+    },
+    "Customer Inquiry?": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gmail Data": {
+      "main": [
+        [
+          {
+            "node": "AI Inquiry Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Form Data": {
+      "main": [
+        [
+          {
+            "node": "AI Inquiry Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b632e5f5-c4e6-4274-8b37-22c7ebf53590",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a23750c5dbc3f635b11781be8be0a79c8772ff91379e93c164335de28ce6b33e"
+  },
+  "nodeGroups": [],
+  "id": "GC9mE0vkuTdWSHTB",
+  "tags": []
+}
