@@ -30,7 +30,7 @@ This workflow:
 
 ## Workflow
 
-![Workflow](assets/ai_triage_architecture.png)
+![Workflow](workflow/ai_triage_architecture.png)
 
 
 ## Full video:
