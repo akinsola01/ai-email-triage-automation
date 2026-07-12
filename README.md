@@ -32,10 +32,10 @@ This workflow:
 
 ## Workflow
 
-![Workflow](assets/architecture.png)
+![Workflow](assets/ai_triage_architecture.png)
 
 
-Full video:
+## Full video:
 https://www.loom.com/share/88091488d23a4e9f80c772c0505f191a
 
 ## Features
